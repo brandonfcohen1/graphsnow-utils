@@ -9,7 +9,7 @@ import math
 s3_client = boto3.client('s3', aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
                          aws_secret_access_key=os.environ["AWS_SECRET_KEY"])
 
-# Determine datestring
+# Determine datestrings
 today = datetime.today()
 monthstring = str(today.year) + str(today.month)
 datestring = str(today.year) + str(today.month) + str(today.day)
@@ -17,25 +17,25 @@ timestring = str(math.floor(datetime.utcnow().hour/6)*6)
 
 data_types = ["snowfall", "snowdensity", "snowdepth"]
 
-
-
-
 for data_type in data_types:
+
+    # geojson template
     geojson = {
     "type": "FeatureCollection",
     "features": []
     }
+
     # Create URL
     url = "https://www.nohrsc.noaa.gov/nsa/discussions_text/National/" + \
         data_type + "/" + datestring[0:6] + \
         "/" + data_type + "_" + datestring + timestring + "_e.txt"
-    print(url)
 
     # Download file and remove first/last row
     downloadfile = requests.get(url)
     row_list = downloadfile.text.split("\n")
     row_list = row_list[1:-1]
 
+    # Loop through rows and add to geojson
     for row in row_list:
         row_ = row.split("|")
         try:
@@ -76,10 +76,12 @@ for data_type in data_types:
         except:
             print(row_)
 
+    # dump to json file
     filename = data_type + ".json"
     with open(filename, "w") as f:
         json.dump(geojson, f)
 
+    # post to s3
     response = s3_client.upload_file(
         filename, "graphsnowgeojson", filename)
 
