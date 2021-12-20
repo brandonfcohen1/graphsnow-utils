@@ -5,6 +5,17 @@ import json
 import boto3
 import os
 import math
+from slack_sdk import WebClient
+
+
+slack_token = os.environ["SLACK"]
+client = WebClient(token=slack_token)
+
+response = client.chat_postMessage(
+    channel="status",
+    type="text",
+    text="loading data now"
+)
 
 s3_client = boto3.client('s3', aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
                          aws_secret_access_key=os.environ["AWS_SECRET_KEY"])
@@ -22,69 +33,86 @@ data_types = ["snowfall", "snowdensity", "snowdepth"]
 
 for data_type in data_types:
 
-    # geojson template
-    geojson = {
-    "type": "FeatureCollection",
-    "features": []
-    }
+    try:
 
-    # Create URL
-    url = "https://www.nohrsc.noaa.gov/nsa/discussions_text/National/" + \
-        data_type + "/" + datestring[0:6] + \
-        "/" + data_type + "_" + datestring + timestring + "_e.txt"
+        # geojson template
+        geojson = {
+        "type": "FeatureCollection",
+        "features": []
+        }
 
-    # Download file and remove first/last row
-    downloadfile = requests.get(url)
-    row_list = downloadfile.text.split("\n")
-    row_list = row_list[1:-1]
+        # Create URL
+        url = "https://www.nohrsc.noaa.gov/nsa/discussions_text/National/" + \
+            data_type + "/" + datestring[0:6] + \
+            "/" + data_type + "_" + datestring + timestring + "_e.txt"
 
-    # Loop through rows and add to geojson
-    for row in row_list:
-        row_ = row.split("|")
-        try:
-            if data_type == "snowfall":
-                feature = {
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [float(row_[3]), float(row_[2])]
-                    },
-                    "properties": {
-                        "name": row_[1],
-                        "elevation": row_[4],
-                        "report_time_utc": row_[6],
-                        "amount": row_[7],
-                        "units": row_[8],
-                        "duration": row_[9],
-                        "durationunits": row_[10],
+        # Download file and remove first/last row
+        downloadfile = requests.get(url)
+        row_list = downloadfile.text.split("\n")
+        row_list = row_list[1:-1]
+
+        # Loop through rows and add to geojson
+        for row in row_list:
+            row_ = row.split("|")
+            try:
+                if data_type == "snowfall":
+                    feature = {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [float(row_[3]), float(row_[2])]
+                        },
+                        "properties": {
+                            "name": row_[1],
+                            "elevation": row_[4],
+                            "report_time_utc": row_[6],
+                            "amount": row_[7],
+                            "units": row_[8],
+                            "duration": row_[9],
+                            "durationunits": row_[10],
+                        }
                     }
-                }
-            else:
-                feature = {
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [float(row_[3]), float(row_[2])]
-                    },
-                    "properties": {
-                        "name": row_[1],
-                        "elevation": row_[4],
-                        "report_time_utc": row_[6],
-                        "amount": row_[7],
-                        "units": row_[8],
+                else:
+                    feature = {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [float(row_[3]), float(row_[2])]
+                        },
+                        "properties": {
+                            "name": row_[1],
+                            "elevation": row_[4],
+                            "report_time_utc": row_[6],
+                            "amount": row_[7],
+                            "units": row_[8],
+                        }
                     }
-                }
-            geojson["features"].append(feature)
+                geojson["features"].append(feature)
 
-        except:
-            print(row_)
+            except:
+                print(row_)
+        
+        filename = data_type + ".json"
 
-    # dump to json file
-    filename = data_type + ".json"
-    with open(filename, "w") as f:
-        json.dump(geojson, f)
+        # dump to json file
+        if False:
+            with open(filename, "w") as f:
+                json.dump(geojson, f)
 
-    # post to s3
-    response = s3_client.upload_file(
-        filename, "graphsnowgeojson", filename, ExtraArgs={'ACL':'public-read'})
+        # post to s3
+        response = s3_client.upload_file(
+            filename, "graphsnowgeojson", filename, ExtraArgs={'ACL':'public-read'})
+        
+        response = client.chat_postMessage(
+            channel="status",
+            type="text",
+            text="loaded data for " + data_type
+        )
+    
+    except Exception as e:
+        response = client.chat_postMessage(
+            channel="status",
+            type="text",
+            text="failure for " + data_type + "\n\n" + str(e)
+        )
 
