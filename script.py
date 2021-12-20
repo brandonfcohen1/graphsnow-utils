@@ -15,6 +15,9 @@ monthstring = str(today.year) + str(today.month)
 datestring = str(today.year) + str(today.month) + str(today.day)
 timestring = str(math.floor(datetime.utcnow().hour/6)*6)
 
+if len(timestring) == 1:
+    timestring = "0" + timestring
+
 data_types = ["snowfall", "snowdensity", "snowdepth"]
 
 for data_type in data_types:
@@ -83,5 +86,5 @@ for data_type in data_types:
 
     # post to s3
     response = s3_client.upload_file(
-        filename, "graphsnowgeojson", filename)
+        filename, "graphsnowgeojson", filename, ExtraArgs={'ACL':'public-read'})
 
