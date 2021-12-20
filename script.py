@@ -11,12 +11,6 @@ from slack_sdk import WebClient
 slack_token = os.environ["SLACK"]
 client = WebClient(token=slack_token)
 
-response = client.chat_postMessage(
-    channel="status",
-    type="text",
-    text="loading data now"
-)
-
 s3_client = boto3.client('s3', aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
                          aws_secret_access_key=os.environ["AWS_SECRET_KEY"])
 
@@ -95,13 +89,12 @@ for data_type in data_types:
         filename = data_type + ".json"
 
         # dump to json file
-        if False:
-            with open(filename, "w") as f:
-                json.dump(geojson, f)
+        with open("tmp/"+filename, "w") as f:
+            json.dump(geojson, f)
 
         # post to s3
         response = s3_client.upload_file(
-            filename, "graphsnowgeojson", filename, ExtraArgs={'ACL':'public-read'})
+            "tmp/"+filename, "graphsnowgeojson", filename, ExtraArgs={'ACL':'public-read'})
         
         response = client.chat_postMessage(
             channel="status",
