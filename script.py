@@ -14,14 +14,19 @@ client = WebClient(token=slack_token)
 s3_client = boto3.client('s3', aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
                          aws_secret_access_key=os.environ["AWS_SECRET_KEY"])
 
+def leading_zero(input):
+    input = str(input)
+    if len(input) == 1:
+        return "0" + input
+    else:
+        return input
+
 # Determine datestrings
 today = datetime.today()
-monthstring = str(today.year) + str(today.month)
-datestring = str(today.year) + str(today.month) + str(today.day)
-timestring = str(math.floor(datetime.utcnow().hour/6)*6)
+monthstring = leading_zero(today.year) + leading_zero(today.month)
+datestring = leading_zero(today.year) + leading_zero(today.month) + leading_zero(today.day)
+timestring = leading_zero(str(math.floor(datetime.utcnow().hour/6)*6))
 
-if len(timestring) == 1:
-    timestring = "0" + timestring
 
 data_types = ["snowfall", "snowdensity", "snowdepth"]
 
