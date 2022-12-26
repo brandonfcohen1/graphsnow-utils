@@ -1,6 +1,5 @@
 from datetime import datetime
 import requests
-import pandas as pd
 import json
 import boto3
 import os
