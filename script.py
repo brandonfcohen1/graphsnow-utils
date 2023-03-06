@@ -92,13 +92,10 @@ for data_type in data_types:
         
         filename = data_type + ".json"
 
-        # dump to json file
-        with open("tmp/"+filename, "w") as f:
-            json.dump(geojson, f)
 
         # post to s3
-        response = s3_client.upload_file(
-            "tmp/"+filename, "graphsnowgeojson", filename, ExtraArgs={'ACL':'public-read'})
+        s3_client.put_object(Body=geojson, Bucket='graphsnowgeojson', Key=filename)
+
         
         response = client.chat_postMessage(
             channel="status",
