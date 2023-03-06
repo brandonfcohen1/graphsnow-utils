@@ -94,7 +94,7 @@ for data_type in data_types:
 
 
         # post to s3
-        s3_client.put_object(Body=json.dumps(geojson), Bucket='graphsnowgeojson', Key=filename)
+        s3_client.put_object(Body=json.dumps(geojson), Bucket='graphsnowgeojson', Key=filename, ACL='public-read')
 
         
         response = client.chat_postMessage(
